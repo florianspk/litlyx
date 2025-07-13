@@ -14,19 +14,19 @@ Une Chart pour déployer **Litlyx**, cette application permet d'analyser les int
 
 ---
 
-## Installation
-
-### Ajouter le repository:
+### Install Litlyx with Helm
 
 ```bash
-helm repo add florianspk-charts https://florianspk.github.io/helm-charts
-helm repo update
+helm template -f <values-demo.yaml> oci://ghcr.io/florianspk/helm-charts/litlyx | k apply -f -
+```
+or
+```bash
+helm install oci://ghcr.io/florianspk/helm-charts/litlyx --version <version>
 ```
 
-### Installer litlyx :
-
+### Upgrade Litlyx
 ```bash
-helm install litlyx florianspk-charts/litlyx --version 0.1.0
+helm upgrade oci://ghcr.io/florianspk/helm-charts/litlyx --version <version>
 ```
 
 ## Parameters

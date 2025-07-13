@@ -4,20 +4,20 @@ This repository hosts **Helm chart** for deploying **Litlyx**.
 
 ## Usage
 
-### Add the Helm repository
-```bash
-helm repo add litlyx https://florianspk.github.io/helm-charts
-helm repo update
-```
 
 ### Install Litlyx with Helm
+
 ```bash
-helm install litlyx litlyx/litlyx
+helm template -f <values-demo.yaml> oci://ghcr.io/florianspk/helm-charts/litlyx | k apply -f -
+```
+or
+```bash
+helm install oci://ghcr.io/florianspk/helm-charts/litlyx --version <version>
 ```
 
 ### Upgrade Litlyx
 ```bash
-helm upgrade litlyx litlyx/litlyx
+helm upgrade oci://ghcr.io/florianspk/helm-charts/litlyx --version <version>
 ```
 
 ---
