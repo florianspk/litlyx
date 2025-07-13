@@ -39,6 +39,10 @@ jobs:
           git diff --cached --quiet || git commit -m "chore(readme): auto-generate from script"
           git push
 
+      - name: Build Helm dependencies
+        run: |
+          helm dependency build charts/litlyx
+
       - name: Package Helm chart with version
         run: |
           helm package charts/litlyx --version ${{ steps.extract.outputs.app_version }} --destination ./helm-packages
