@@ -1,0 +1,75 @@
+name: Build & Publish Helm Chart
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: write
+  packages: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+
+      - name: Set up Git
+        run: |
+          git config --global user.email "github-actions@github.com"
+          git config --global user.name "GitHub Actions"
+
+      - name: Extract Chart Version
+        id: extract
+        run: |
+          version=$(grep '^version:' charts/litlyx/Chart.yaml | awk '{ print $2 }')
+          echo "app_version=$version" >> $GITHUB_OUTPUT
+
+      - name: Generate README
+        run: ./scripts/generate-readme.sh
+
+      - name: Commit README if changed
+        run: |
+          git add charts/litlyx/README.md
+          git diff --cached --quiet || git commit -m "chore(readme): auto-generate from script"
+          git push
+
+      - name: Package Helm chart with version
+        run: |
+          helm package charts/litlyx --version ${{ steps.extract.outputs.app_version }} --destination ./helm-packages
+
+      - name: Login to GHCR
+        run: |
+          echo "${{ secrets.PERSONAL_ACCESS_TOKEN }}" | helm registry login ghcr.io -u ${{ github.actor }} --password-stdin
+
+      - name: Push Helm chart to GHCR (OCI)
+        run: |
+          helm push ./helm-packages/litlyx-${{ steps.extract.outputs.app_version }}.tgz oci://ghcr.io/${{ github.repository_owner }}/helm-charts
+
+      - name: Checkout GitHub Pages repo
+        uses: actions/checkout@v4
+        with:
+          repository: florianspk/helm-charts
+          token: ${{ secrets.PERSONAL_ACCESS_TOKEN }}
+          path: gh-pages
+
+      - name: Copy chart package
+        run: |
+          cp ./helm-packages/*.tgz gh-pages/
+
+      - name: Rebuild index.yaml
+        run: |
+          cd gh-pages
+          helm repo index . --url https://florianspk.github.io/helm-charts
+
+      - name: Commit and push to GitHub Pages
+        run: |
+          cd gh-pages
+          git add .
+          git commit -m "chore: publish litlyx chart v${{ steps.extract.outputs.app_version }} [ci skip]" || echo "No changes to commit"
+          git push

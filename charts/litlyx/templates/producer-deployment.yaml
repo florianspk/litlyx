@@ -1,0 +1,104 @@
+{{- if .Values.producer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "litlyx.fullname" . }}-producer
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: producer
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.producer.autoscaling.enabled }}
+  replicas: {{ .Values.producer.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "litlyx.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: producer
+  template:
+    metadata:
+      {{- with .Values.producer.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "litlyx.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: producer
+        {{- with .Values.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "litlyx.serviceAccountName" . }}
+      {{- if .Values.producer.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.producer.podSecurityContext | nindent 8 }}
+      {{- else if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+      {{- end }}
+      {{- if .Values.initContainers.enabled }}
+      initContainers:
+        {{- toYaml .Values.initContainers.containers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: producer
+          {{- if .Values.producer.securityContext }}
+          securityContext:
+            {{- toYaml .Values.producer.securityContext | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.global.imageRegistry | default .Values.producer.image.registry }}/{{ .Values.producer.image.repository }}:{{ .Values.producer.image.tag }}"
+          imagePullPolicy: {{ .Values.producer.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.producer.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.producer.env.PORT | quote }}
+            - name: REDIS_URL
+              value: {{ include "litlyx.redisUrl" . }}
+            - name: REDIS_USERNAME
+              value: {{ include "litlyx.redisUsername" . }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: redis-password
+            - name: STREAM_NAME
+              value: {{ .Values.producer.env.STREAM_NAME | quote }}
+          resources:
+            {{- toYaml .Values.producer.resources | nindent 12 }}
+          {{- if .Values.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+        {{- if .Values.sidecars.enabled }}
+        {{- toYaml .Values.sidecars.containers | nindent 8 }}
+        {{- end }}
+      {{- if .Values.extraVolumes }}
+      volumes:
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.producer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.producer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.producer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

@@ -1,0 +1,103 @@
+{{- if .Values.producer.autoscaling.enabled }}
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "litlyx.fullname" . }}-producer
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: producer
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "litlyx.fullname" . }}-producer
+  minReplicas: {{ .Values.producer.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.producer.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.producer.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.producer.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.producer.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.producer.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+
+{{- if .Values.consumer.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "litlyx.fullname" . }}-consumer
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: consumer
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "litlyx.fullname" . }}-consumer
+  minReplicas: {{ .Values.consumer.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.consumer.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.consumer.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.consumer.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.consumer.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.consumer.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}
+
+{{- if .Values.dashboard.autoscaling.enabled }}
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: {{ include "litlyx.fullname" . }}-dashboard
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+spec:
+  scaleTargetRef:
+    apiVersion: apps/v1
+    kind: Deployment
+    name: {{ include "litlyx.fullname" . }}-dashboard
+  minReplicas: {{ .Values.dashboard.autoscaling.minReplicas }}
+  maxReplicas: {{ .Values.dashboard.autoscaling.maxReplicas }}
+  metrics:
+    {{- if .Values.dashboard.autoscaling.targetCPUUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: cpu
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.dashboard.autoscaling.targetCPUUtilizationPercentage }}
+    {{- end }}
+    {{- if .Values.dashboard.autoscaling.targetMemoryUtilizationPercentage }}
+    - type: Resource
+      resource:
+        name: memory
+        target:
+          type: Utilization
+          averageUtilization: {{ .Values.dashboard.autoscaling.targetMemoryUtilizationPercentage }}
+    {{- end }}
+{{- end }}

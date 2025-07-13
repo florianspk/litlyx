@@ -1,0 +1,196 @@
+{{- if .Values.dashboard.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "litlyx.fullname" . }}-dashboard
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.dashboard.autoscaling.enabled }}
+  replicas: {{ .Values.dashboard.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "litlyx.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: dashboard
+  template:
+    metadata:
+      {{- with .Values.dashboard.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "litlyx.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: dashboard
+        {{- with .Values.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "litlyx.serviceAccountName" . }}
+      {{- if .Values.dashboard.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.dashboard.podSecurityContext | nindent 8 }}
+      {{- else if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+      {{- end }}
+      {{- if .Values.initContainers.enabled }}
+      initContainers:
+        {{- toYaml .Values.initContainers.containers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: dashboard
+          {{- if .Values.dashboard.securityContext }}
+          securityContext:
+            {{- toYaml .Values.dashboard.securityContext | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.global.imageRegistry | default .Values.dashboard.image.registry }}/{{ .Values.dashboard.image.repository }}:{{ .Values.dashboard.image.tag }}"
+          imagePullPolicy: {{ .Values.dashboard.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.dashboard.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: NUXT_PORT
+              value: {{ .Values.dashboard.env.NUXT_PORT | quote }}
+            - name: NUXT_MONGO_CONNECTION_STRING
+              value: {{ include "litlyx.mongoConnectionString" . }}
+            - name: NUXT_REDIS_URL
+              value: {{ include "litlyx.redisUrl" . }}
+            - name: NUXT_REDIS_USERNAME
+              value: {{ include "litlyx.redisUsername" . }}
+            - name: NUXT_REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: redis-password
+            - name: NUXT_AUTH_JWT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: jwt-secret
+            - name: NUXT_PUBLIC_AUTH_MODE
+              value: {{ .Values.dashboard.auth.mode | quote }}
+            - name: NUXT_NOAUTH_USER_EMAIL
+              value: {{ .Values.dashboard.auth.noAuthUser.email | quote }}
+            - name: NUXT_NOAUTH_USER_PASS
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: noauth-user-password
+            - name: NUXT_SELFHOSTED
+              value: {{ .Values.dashboard.env.NUXT_SELFHOSTED | quote }}
+            - name: NUXT_PUBLIC_SELFHOSTED
+              value: {{ .Values.dashboard.env.NUXT_PUBLIC_SELFHOSTED | quote }}
+            {{- if eq .Values.dashboard.auth.mode "GOOGLE" }}
+            - name: NUXT_GOOGLE_AUTH_CLIENT_ID
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: google-client-id
+            - name: NUXT_GOOGLE_AUTH_CLIENT_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: google-client-secret
+            {{- end }}
+            {{- if .Values.dashboard.ai.enabled }}
+            - name: NUXT_AI_ORG
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: openai-organization
+            - name: NUXT_AI_PROJECT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: openai-project
+            - name: NUXT_AI_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: openai-api-key
+            {{- end }}
+            {{- if .Values.dashboard.email.enabled }}
+            - name: NUXT_EMAIL_SERVICE
+              value: {{ .Values.dashboard.email.service | quote }}
+            - name: NUXT_BREVO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: brevo-api-key
+            {{- end }}
+            {{- if .Values.dashboard.stripe.enabled }}
+            - name: NUXT_STRIPE_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: stripe-secret-key
+            - name: NUXT_STRIPE_WH_SECRET
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: stripe-webhook-secret
+            {{- if .Values.dashboard.stripe.testMode }}
+            - name: NUXT_STRIPE_SECRET_TEST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: stripe-test-secret-key
+            - name: NUXT_STRIPE_WH_SECRET_TEST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: stripe-test-webhook-secret
+            {{- end }}
+            {{- end }}
+          livenessProbe:
+            httpGet:
+              path: /health
+              port: http
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: http
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          resources:
+            {{- toYaml .Values.dashboard.resources | nindent 12 }}
+          {{- if .Values.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+        {{- if .Values.sidecars.enabled }}
+        {{- toYaml .Values.sidecars.containers | nindent 8 }}
+        {{- end }}
+      {{- if .Values.extraVolumes }}
+      volumes:
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dashboard.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dashboard.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.dashboard.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}

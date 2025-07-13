@@ -1,0 +1,74 @@
+{{- if .Values.producer.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "litlyx.fullname" . }}-producer
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: producer
+  {{- with .Values.producer.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.producer.service.type }}
+  ports:
+    - port: {{ .Values.producer.service.port }}
+      targetPort: {{ .Values.producer.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "litlyx.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: producer
+{{- end }}
+
+{{- if .Values.consumer.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "litlyx.fullname" . }}-consumer
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: consumer
+  {{- with .Values.consumer.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.consumer.service.type }}
+  ports:
+    - port: {{ .Values.consumer.service.port }}
+      targetPort: {{ .Values.consumer.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "litlyx.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: consumer
+{{- end }}
+
+{{- if .Values.dashboard.enabled }}
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "litlyx.fullname" . }}-dashboard
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+  {{- with .Values.dashboard.service.annotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  type: {{ .Values.dashboard.service.type }}
+  ports:
+    - port: {{ .Values.dashboard.service.port }}
+      targetPort: {{ .Values.dashboard.service.targetPort }}
+      protocol: TCP
+      name: http
+  selector:
+    {{- include "litlyx.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: dashboard
+{{- end }}

@@ -1,0 +1,2 @@
+global:
+  storageClass: "linstor-lvm-r1"

@@ -1,0 +1,531 @@
+## @section Global configuration
+## @descriptionStart
+## Global settings applied to all components in the stack.
+## @descriptionEnd
+global:
+  ## @param global.imageRegistry string - Default Docker image registry
+  imageRegistry: ""
+  ## @param global.imagePullSecrets array - List of image pull secrets for private registries
+  imagePullSecrets: []
+  ## @param global.storageClass string - Default storage class for persistent volumes
+  storageClass: ""
+
+## @section Common metadata
+## @descriptionStart
+## Common labels and annotations applied to all Kubernetes resources.
+## @descriptionEnd
+## @param commonLabels object - Kubernetes labels shared by all resources
+commonLabels: {}
+## @param commonAnnotations object - Kubernetes annotations shared by all resources
+commonAnnotations: {}
+
+## @section Producer service
+## @descriptionStart
+## Configuration for the Producer service, responsible for sending data to the stream.
+## @descriptionEnd
+producer:
+  ## @param producer.enabled bool - Enable or disable the Producer service
+  enabled: true
+  image:
+    ## @param producer.image.registry string - Docker registry for Producer
+    registry: docker.io
+    ## @param producer.image.repository string - Image name for Producer
+    repository: litlyx/litlyx-producer
+    ## @param producer.image.tag string - Image tag for Producer
+    tag: "latest"
+    ## @param producer.image.pullPolicy string - Kubernetes image pull policy
+    pullPolicy: Always
+  ## @param producer.replicaCount int - Number of replicas for Producer pods
+  replicaCount: 1
+  service:
+    ## @param producer.service.type string - Service type (ClusterIP, NodePort, etc.)
+    type: ClusterIP
+    ## @param producer.service.port int - Service port for Producer
+    port: 3099
+    ## @param producer.service.targetPort int - Container port for Producer
+    targetPort: 3099
+    ## @param producer.service.annotations object - Annotations for the Producer service
+    annotations: {}
+  resources:
+    limits:
+      ## @param producer.resources.limits.cpu string - CPU limit for Producer
+      cpu: 500m
+      ## @param producer.resources.limits.memory string - Memory limit for Producer
+      memory: 512Mi
+    requests:
+      ## @param producer.resources.requests.cpu string - CPU request for Producer
+      cpu: 250m
+      ## @param producer.resources.requests.memory string - Memory request for Producer
+      memory: 256Mi
+  ## @param producer.nodeSelector object - Node selector rules
+  nodeSelector: {}
+  ## @param producer.tolerations array - Toleration rules for scheduling
+  tolerations: []
+  ## @param producer.affinity object - Affinity rules for pod scheduling
+  affinity: {}
+  ## @param producer.podAnnotations object - Annotations on the Producer pod
+  podAnnotations: {}
+  ## @param producer.podSecurityContext object - Security context at pod level
+  podSecurityContext: {}
+  ## @param producer.securityContext object - Security context at container level
+  securityContext: {}
+  env:
+    ## @param producer.env.PORT string - Environment variable for the listening port
+    PORT: "3099"
+    ## @param producer.env.STREAM_NAME string - Kafka stream name
+    STREAM_NAME: "LITLYX"
+  autoscaling:
+    ## @param producer.autoscaling.enabled bool - Enable autoscaling for Producer
+    enabled: false
+    ## @param producer.autoscaling.minReplicas int - Minimum number of replicas
+    minReplicas: 1
+    ## @param producer.autoscaling.maxReplicas int - Maximum number of replicas
+    maxReplicas: 10
+    ## @param producer.autoscaling.targetCPUUtilizationPercentage int - CPU target %
+    targetCPUUtilizationPercentage: 80
+    ## @param producer.autoscaling.targetMemoryUtilizationPercentage int - Memory target %
+    targetMemoryUtilizationPercentage: 80
+
+## @section Consumer service
+## @descriptionStart
+## Configuration for the Consumer service, which reads and processes data from the stream.
+## @descriptionEnd
+consumer:
+  ## @param consumer.enabled bool - Enable or disable the Consumer service
+  enabled: true
+  image:
+    ## @param consumer.image.registry string - Docker registry for Consumer
+    registry: docker.io
+    ## @param consumer.image.repository string - Image name for Consumer
+    repository: litlyx/litlyx-consumer
+    ## @param consumer.image.tag string - Image tag for Consumer
+    tag: "latest"
+    ## @param consumer.image.pullPolicy string - Kubernetes image pull policy
+    pullPolicy: Always
+  ## @param consumer.replicaCount int - Number of replicas for Consumer pods
+  replicaCount: 1
+  service:
+    ## @param consumer.service.type string - Service type (ClusterIP, NodePort, etc.)
+    type: ClusterIP
+    ## @param consumer.service.port int - Service port for Consumer
+    port: 3031
+    ## @param consumer.service.targetPort int - Container port for Consumer
+    targetPort: 3031
+    ## @param consumer.service.annotations object - Annotations for the Consumer service
+    annotations: {}
+  resources:
+    limits:
+      ## @param consumer.resources.limits.cpu string - CPU limit for Consumer
+      cpu: 500m
+      ## @param consumer.resources.limits.memory string - Memory limit for Consumer
+      memory: 512Mi
+    requests:
+      ## @param consumer.resources.requests.cpu string - CPU request for Consumer
+      cpu: 250m
+      ## @param consumer.resources.requests.memory string - Memory request for Consumer
+      memory: 256Mi
+  ## @param consumer.nodeSelector object - Node selector rules
+  nodeSelector: {}
+  ## @param consumer.tolerations array - Toleration rules for scheduling
+  tolerations: []
+  ## @param consumer.affinity object - Affinity rules for pod scheduling
+  affinity: {}
+  ## @param consumer.podAnnotations object - Annotations on the Consumer pod
+  podAnnotations: {}
+  ## @param consumer.podSecurityContext object - Security context at pod level
+  podSecurityContext: {}
+  ## @param consumer.securityContext object - Security context at container level
+  securityContext: {}
+  env:
+    ## @param consumer.env.PORT string - Environment variable for the listening port
+    PORT: "3031"
+    ## @param consumer.env.STREAM_NAME string - Kafka stream name
+    STREAM_NAME: "LITLYX"
+    ## @param consumer.env.GROUP_NAME string - Kafka consumer group name
+    GROUP_NAME: "DATABASE"
+  email:
+    ## @param consumer.email.enabled bool - Enable email alerts in Consumer
+    enabled: false
+    ## @param consumer.email.service string - Email provider service name
+    service: "Brevo"
+    ## @param consumer.email.brevoApiKey string - API key for Brevo email service
+    brevoApiKey: ""
+  autoscaling:
+    ## @param consumer.autoscaling.enabled bool - Enable autoscaling for Consumer
+    enabled: false
+    ## @param consumer.autoscaling.minReplicas int - Minimum number of replicas
+    minReplicas: 1
+    ## @param consumer.autoscaling.maxReplicas int - Maximum number of replicas
+    maxReplicas: 10
+    ## @param consumer.autoscaling.targetCPUUtilizationPercentage int - CPU target %
+    targetCPUUtilizationPercentage: 80
+    ## @param consumer.autoscaling.targetMemoryUtilizationPercentage int - Memory target %
+    targetMemoryUtilizationPercentage: 80
+
+## @section Dashboard
+## @descriptionStart
+## Configuration for the Litlyx dashboard component.
+## @descriptionEnd
+dashboard:
+  ## @param dashboard.enabled bool - Enable the dashboard deployment
+  enabled: true
+  image:
+    ## @param dashboard.image.registry string - Docker registry for the dashboard image
+    registry: docker.io
+    ## @param dashboard.image.repository string - Docker image repository for the dashboard
+    repository: litlyx/litlyx-dashboard
+    ## @param dashboard.image.tag string - Image tag for the dashboard
+    tag: "latest"
+    ## @param dashboard.image.pullPolicy string - Image pull policy
+    pullPolicy: Always
+
+  ## @param dashboard.replicaCount int - Number of dashboard replicas
+  replicaCount: 1
+
+  service:
+    ## @param dashboard.service.type string - Service type (e.g., ClusterIP)
+    type: ClusterIP
+    ## @param dashboard.service.port int - Service port to expose
+    port: 3000
+    ## @param dashboard.service.targetPort int - Container port for dashboard
+    targetPort: 3000
+    ## @param dashboard.service.annotations object - Service annotations
+    annotations: {}
+
+  resources:
+    limits:
+      ## @param dashboard.resources.limits.cpu string - CPU limit for dashboard
+      cpu: 1000m
+      ## @param dashboard.resources.limits.memory string - Memory limit for dashboard
+      memory: 1Gi
+    requests:
+      ## @param dashboard.resources.requests.cpu string - CPU request for dashboard
+      cpu: 500m
+      ## @param dashboard.resources.requests.memory string - Memory request for dashboard
+      memory: 512Mi
+
+  ## @param dashboard.nodeSelector object - Node selector for dashboard pods
+  nodeSelector: {}
+  ## @param dashboard.tolerations list - Tolerations for dashboard pods
+  tolerations: []
+  ## @param dashboard.affinity object - Affinity rules for dashboard pods
+  affinity: {}
+
+  ## @param dashboard.podAnnotations object - Annotations for dashboard pods
+  podAnnotations: {}
+  ## @param dashboard.podSecurityContext object - Security context for dashboard pod
+  podSecurityContext: {}
+  ## @param dashboard.securityContext object - Container security context for dashboard
+  securityContext: {}
+
+  env:
+    ## @param dashboard.env.NUXT_PORT string - Nuxt server port
+    NUXT_PORT: "3000"
+    ## @param dashboard.env.NUXT_SELFHOSTED string - Self-hosted mode flag
+    NUXT_SELFHOSTED: "true"
+    ## @param dashboard.env.NUXT_PUBLIC_SELFHOSTED string - Public self-hosted mode flag
+    NUXT_PUBLIC_SELFHOSTED: "true"
+
+  auth:
+    ## @param dashboard.auth.mode string - Authentication mode (NO_AUTH or GOOGLE)
+    mode: "NO_AUTH"
+    ## @param dashboard.auth.jwtSecret string - JWT secret for auth
+    jwtSecret: "litlyx_jwt_secret"
+    noAuthUser:
+      ## @param dashboard.auth.noAuthUser.email string - Email for no-auth default user
+      email: "default@user.com"
+      ## @param dashboard.auth.noAuthUser.password string - Password for no-auth default user
+      password: "litlyx123"
+    google:
+      ## @param dashboard.auth.google.clientId string - Google OAuth client ID
+      clientId: ""
+      ## @param dashboard.auth.google.clientSecret string - Google OAuth client secret
+      clientSecret: ""
+
+  ai:
+    ## @param dashboard.ai.enabled bool - Enable AI features
+    enabled: false
+    openai:
+      ## @param dashboard.ai.openai.organization string - OpenAI organization ID
+      organization: ""
+      ## @param dashboard.ai.openai.project string - OpenAI project name
+      project: ""
+      ## @param dashboard.ai.openai.apiKey string - OpenAI API key
+      apiKey: ""
+
+  email:
+    ## @param dashboard.email.enabled bool - Enable email notifications
+    enabled: false
+    ## @param dashboard.email.service string - Email service provider
+    service: "Brevo"
+    ## @param dashboard.email.brevoApiKey string - API key for Brevo service
+    brevoApiKey: ""
+
+  stripe:
+    ## @param dashboard.stripe.enabled bool - Enable Stripe integration
+    enabled: false
+    ## @param dashboard.stripe.secretKey string - Stripe secret key for live mode
+    secretKey: ""
+    ## @param dashboard.stripe.webhookSecret string - Stripe webhook secret for live mode
+    webhookSecret: ""
+    ## @param dashboard.stripe.testMode bool - Enable test mode for Stripe
+    testMode: false
+    ## @param dashboard.stripe.testSecretKey string - Stripe secret key for test mode
+    testSecretKey: ""
+    ## @param dashboard.stripe.testWebhookSecret string - Stripe webhook secret for test mode
+    testWebhookSecret: ""
+
+  autoscaling:
+    ## @param dashboard.autoscaling.enabled bool - Enable horizontal pod autoscaler
+    enabled: false
+    ## @param dashboard.autoscaling.minReplicas int - Minimum number of replicas
+    minReplicas: 1
+    ## @param dashboard.autoscaling.maxReplicas int - Maximum number of replicas
+    maxReplicas: 10
+    ## @param dashboard.autoscaling.targetCPUUtilizationPercentage int - Target CPU utilization for autoscaling
+    targetCPUUtilizationPercentage: 80
+    ## @param dashboard.autoscaling.targetMemoryUtilizationPercentage int - Target memory utilization for autoscaling
+    targetMemoryUtilizationPercentage: 80
+
+## @section Ingress
+## @descriptionStart
+## Ingress settings for exposing services outside the cluster.
+## @descriptionEnd
+ingress:
+  ## @param ingress.enabled bool - Enable ingress controller
+  enabled: false
+  ## @param ingress.className string - Ingress class name (e.g., nginx)
+  className: ""
+  ## @param ingress.annotations object - Ingress annotations
+  annotations: {}
+  # hosts:
+  #   - host: litlyx.local
+  # paths:
+  #   - path: /
+  #     pathType: Prefix
+  #     service: dashboard
+  #   - path: /api
+  #     pathType: Prefix
+  #     service: producer
+  # tls: []
+
+## @section Service Monitor
+## @descriptionStart
+## ServiceMonitor configuration for Prometheus integration.
+## @descriptionEnd
+serviceMonitor:
+  ## @param serviceMonitor.enabled bool - Enable Prometheus ServiceMonitor
+  enabled: false
+  ## @param serviceMonitor.namespace string - Namespace where ServiceMonitor will be created
+  namespace: ""
+  ## @param serviceMonitor.interval string - Scrape interval for Prometheus
+  interval: 30s
+  ## @param serviceMonitor.scrapeTimeout string - Timeout for scrape requests
+  scrapeTimeout: 10s
+  ## @param serviceMonitor.labels object - Labels to add to ServiceMonitor
+  labels: {}
+
+## @section MongoDB (internal)
+## @descriptionStart
+## MongoDB configuration using the Bitnami Helm chart.
+## @descriptionEnd
+mongodb:
+  ## @param mongodb.enabled bool - Enable internal MongoDB
+  enabled: true
+  ## @param mongodb.architecture string - MongoDB architecture (standalone/replicaSet)
+  architecture: standalone
+  auth:
+    ## @param mongodb.auth.enabled bool - Enable MongoDB authentication
+    enabled: true
+    ## @param mongodb.auth.rootUser string - Root username
+    rootUser: root
+    ## @param mongodb.auth.rootPassword string - Root password
+    rootPassword: root-password
+    ## @param mongodb.auth.databases array - Default database names
+    databases:
+      - litlyx-metrics
+    ## @param mongodb.auth.usernames array - Default usernames
+    usernames:
+      - litlyx-user
+  persistence:
+    ## @param mongodb.persistence.enabled bool - Enable persistence for MongoDB
+    enabled: true
+    ## @param mongodb.persistence.size string - Size of the persistent volume
+    size: 8Gi
+    ## @param mongodb.persistence.storageClass string - StorageClass for PVC
+    storageClass: ""
+  resources:
+    limits:
+      ## @param mongodb.resources.limits.cpu string - CPU limit
+      cpu: 1000m
+      ## @param mongodb.resources.limits.memory string - Memory limit
+      memory: 1Gi
+    requests:
+      ## @param mongodb.resources.requests.cpu string - CPU request
+      cpu: 500m
+      ## @param mongodb.resources.requests.memory string - Memory request
+      memory: 512Mi
+  service:
+    ## @param mongodb.service.type string - Service type (e.g., ClusterIP)
+    type: ClusterIP
+    ports:
+      ## @param mongodb.service.ports.mongodb int - MongoDB service port
+      mongodb: 27017
+
+## @section Redis (internal)
+redis:
+  ## @param redis.enabled bool - Enable internal Redis
+  enabled: true
+  ## @param redis.architecture string - Redis architecture (standalone/replica)
+  architecture: standalone
+  auth:
+    ## @param redis.auth.enabled bool - Enable Redis authentication
+    enabled: true
+    ## @param redis.auth.password string - Redis password
+    password: litlyx
+  master:
+    persistence:
+      ## @param redis.master.persistence.enabled bool - Enable Redis persistence
+      enabled: true
+      ## @param redis.master.persistence.size string - Size of the Redis volume
+      size: 8Gi
+      ## @param redis.master.persistence.storageClass string - StorageClass for Redis PVC
+      storageClass: ""
+    resources:
+      limits:
+        ## @param redis.master.resources.limits.cpu string - CPU limit for Redis master
+        cpu: 500m
+        ## @param redis.master.resources.limits.memory string - Memory limit for Redis master
+        memory: 512Mi
+      requests:
+        ## @param redis.master.resources.requests.cpu string - CPU request for Redis master
+        cpu: 250m
+        ## @param redis.master.resources.requests.memory string - Memory request for Redis master
+        memory: 256Mi
+  service:
+    ## @param redis.service.type string - Redis service type
+    type: ClusterIP
+    ports:
+      ## @param redis.service.ports.redis int - Redis port
+      redis: 6379
+
+## @section External MongoDB
+externalMongodb:
+  ## @param externalMongodb.enabled bool - Use external MongoDB instead of internal
+  enabled: false
+  ## @param externalMongodb.connectionString string - Full MongoDB URI (overrides host/port)
+  connectionString: ""
+  ## @param externalMongodb.host string - External MongoDB host
+  host: ""
+  ## @param externalMongodb.port int - External MongoDB port
+  port: 27017
+  ## @param externalMongodb.database string - Database name to use
+  database: "SimpleMetrics"
+  ## @param externalMongodb.username string - Username for authentication
+  username: ""
+  ## @param externalMongodb.password string - Password for authentication
+  password: ""
+  ## @param externalMongodb.authSource string - Authentication source (e.g., admin)
+  authSource: "admin"
+
+## @section External Redis
+externalRedis:
+  ## @param externalRedis.enabled bool - Use external Redis instead of internal
+  enabled: false
+  ## @param externalRedis.url string - Redis connection URI (e.g., redis://host:port)
+  url: ""
+  ## @param externalRedis.host string - External Redis host
+  host: ""
+  ## @param externalRedis.port int - External Redis port
+  port: 6379
+  ## @param externalRedis.username string - Username for Redis (default is "default")
+  username: "default"
+  ## @param externalRedis.password string - Redis password
+  password: ""
+
+## @section Network Policies
+networkPolicy:
+  ## @param networkPolicy.enabled bool - Enable network policies
+  enabled: false
+  ingress:
+    ## @param networkPolicy.ingress.enabled bool - Enable ingress rules
+    enabled: true
+    ## @param networkPolicy.ingress.namespaceSelector object - Namespace selector for ingress
+    namespaceSelector: {}
+    ## @param networkPolicy.ingress.podSelector object - Pod selector for ingress
+    podSelector: {}
+  egress:
+    ## @param networkPolicy.egress.enabled bool - Enable egress rules
+    enabled: true
+    ## @param networkPolicy.egress.rules list - List of egress rules
+    rules: []
+
+## @section Pod Disruption Budget
+podDisruptionBudget:
+  ## @param podDisruptionBudget.enabled bool - Enable PDB
+  enabled: false
+  ## @param podDisruptionBudget.minAvailable int - Minimum available pods during disruptions
+  minAvailable: 1
+
+## @section Security Context
+securityContext:
+  ## @param securityContext.enabled bool - Enable custom security context
+  enabled: true
+  ## @param securityContext.fsGroup int - fsGroup ID for shared volume access
+  fsGroup: 1001
+  ## @param securityContext.runAsUser int - UID to run the container
+  runAsUser: 1001
+  ## @param securityContext.runAsGroup int - GID to run the container
+  runAsGroup: 1001
+  ## @param securityContext.runAsNonRoot bool - Force non-root execution
+  runAsNonRoot: true
+
+## @section RBAC and Service Account
+rbac:
+  ## @param rbac.create bool - Create necessary RBAC roles and bindings
+  create: true
+serviceAccount:
+  ## @param serviceAccount.create bool - Create a service account
+  create: true
+  ## @param serviceAccount.name string - Override the name of the service account
+  name: ""
+  ## @param serviceAccount.annotations object - Annotations to add to the service account
+  annotations: {}
+
+## @section Init Containers
+initContainers:
+  ## @param initContainers.enabled bool - Enable init containers
+  enabled: false
+  ## @param initContainers.containers list - List of init container specs
+  containers: []
+
+## @section Sidecars
+sidecars:
+  ## @param sidecars.enabled bool - Enable sidecar containers
+  enabled: false
+  ## @param sidecars.containers list - List of sidecar container specs
+  containers: []
+
+## @section Extra Volumes and Mounts
+## @param extraVolumes list - Extra volumes to mount
+extraVolumes: []
+## @param extraVolumeMounts list - Extra volume mounts for pods
+extraVolumeMounts: []
+
+## @section Secrets
+secrets:
+  ## @param secrets.create bool - Create secret resources from values
+  create: true
+  ## @param secrets.annotations object - Annotations to add to created secrets
+  annotations: {}
+  ## @param secrets.data object - Key-value pairs of secret data
+  data: {}
+
+## @section Config Maps
+configMaps:
+  ## @param configMaps.create bool - Create config maps from values
+  create: true
+  ## @param configMaps.annotations object - Annotations to add to created config maps
+  annotations: {}
+  ## @param configMaps.data object - Key-value pairs of config data
+  data: {}

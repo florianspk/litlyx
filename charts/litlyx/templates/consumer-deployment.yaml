@@ -1,0 +1,117 @@
+{{- if .Values.consumer.enabled }}
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "litlyx.fullname" . }}-consumer
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: consumer
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  {{- if not .Values.consumer.autoscaling.enabled }}
+  replicas: {{ .Values.consumer.replicaCount }}
+  {{- end }}
+  selector:
+    matchLabels:
+      {{- include "litlyx.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: consumer
+  template:
+    metadata:
+      {{- with .Values.consumer.podAnnotations }}
+      annotations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      labels:
+        {{- include "litlyx.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: consumer
+        {{- with .Values.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "litlyx.serviceAccountName" . }}
+      {{- if .Values.consumer.podSecurityContext }}
+      securityContext:
+        {{- toYaml .Values.consumer.podSecurityContext | nindent 8 }}
+      {{- else if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+      {{- end }}
+      {{- if .Values.initContainers.enabled }}
+      initContainers:
+        {{- toYaml .Values.initContainers.containers | nindent 8 }}
+      {{- end }}
+      containers:
+        - name: consumer
+          {{- if .Values.consumer.securityContext }}
+          securityContext:
+            {{- toYaml .Values.consumer.securityContext | nindent 12 }}
+          {{- end }}
+          image: "{{ .Values.global.imageRegistry | default .Values.consumer.image.registry }}/{{ .Values.consumer.image.repository }}:{{ .Values.consumer.image.tag }}"
+          imagePullPolicy: {{ .Values.consumer.image.pullPolicy }}
+          ports:
+            - name: http
+              containerPort: {{ .Values.consumer.service.targetPort }}
+              protocol: TCP
+          env:
+            - name: PORT
+              value: {{ .Values.consumer.env.PORT | quote }}
+            - name: MONGO_CONNECTION_STRING
+              value: {{ include "litlyx.mongoConnectionString" . }}
+            - name: REDIS_URL
+              value: {{ include "litlyx.redisUrl" . }}
+            - name: REDIS_USERNAME
+              value: {{ include "litlyx.redisUsername" . }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: redis-password
+            - name: STREAM_NAME
+              value: {{ .Values.consumer.env.STREAM_NAME | quote }}
+            - name: GROUP_NAME
+              value: {{ .Values.consumer.env.GROUP_NAME | quote }}
+            {{- if .Values.consumer.email.enabled }}
+            - name: EMAIL_SERVICE
+              value: {{ .Values.consumer.email.service | quote }}
+            - name: BREVO_API_KEY
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: brevo-api-key
+            {{- end }}
+          resources:
+            {{- toYaml .Values.consumer.resources | nindent 12 }}
+          {{- if .Values.extraVolumeMounts }}
+          volumeMounts:
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+          {{- end }}
+        {{- if .Values.sidecars.enabled }}
+        {{- toYaml .Values.sidecars.containers | nindent 8 }}
+        {{- end }}
+      {{- if .Values.extraVolumes }}
+      volumes:
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+      {{- end }}
+      {{- with .Values.consumer.nodeSelector }}
+      nodeSelector:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.consumer.affinity }}
+      affinity:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      {{- with .Values.consumer.tolerations }}
+      tolerations:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+{{- end }}
