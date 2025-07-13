@@ -1,6 +1,6 @@
 # litlyx Helm Chart
 
-![Artifact Hub](https://img.shields.io/badge/ArtifactHub-litlyx-blue)
+[![Artifact Hub](https://img.shields.io/endpoint?url=https://artifacthub.io/badge/repository/litlyx)](https://artifacthub.io/packages/search?repo=litlyx)
 
 ## ⚠️ Warning
 
