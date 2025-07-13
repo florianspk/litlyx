@@ -31,7 +31,7 @@ jobs:
           echo "app_version=$version" >> $GITHUB_OUTPUT
 
       - name: Generate README
-        run: ./scripts/generate-readme.sh
+        run: ./generate-readme.sh
 
       - name: Commit README if changed
         run: |
