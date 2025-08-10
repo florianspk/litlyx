@@ -1,0 +1,191 @@
+{{- if .Values.mongodb.enabled }}
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: {{ include "litlyx.fullname" . }}-mongodb
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+spec:
+  accessModes:
+    - ReadWriteOnce
+  {{- if .Values.mongodb.persistence.storageClass }}
+  {{- if (eq "-" .Values.mongodb.persistence.storageClass) }}
+  storageClassName: ""
+  {{- else }}
+  storageClassName: {{ .Values.mongodb.persistence.storageClass | quote }}
+  {{- end }}
+  {{- else if .Values.global.storageClass }}
+  storageClassName: {{ .Values.global.storageClass | quote }}
+  {{- end }}
+  resources:
+    requests:
+      storage: {{ .Values.mongodb.persistence.size | quote }}
+
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "litlyx.fullname" . }}-mongodb-init
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+data:
+  init-mongo.js: |
+    {{- if .Values.mongodb.auth.databases }}
+    {{- range .Values.mongodb.auth.databases }}
+    db = db.getSiblingDB('{{ . }}');
+    {{- end }}
+    {{- end }}
+    {{- if and .Values.mongodb.auth.usernames .Values.mongodb.auth.databases }}
+    {{- range $i, $username := .Values.mongodb.auth.usernames }}
+    {{- $database := index $.Values.mongodb.auth.databases $i | default (index $.Values.mongodb.auth.databases 0) }}
+    db = db.getSiblingDB('{{ $database }}');
+    db.createUser({
+      user: '{{ $username }}',
+      pwd: '{{ $.Values.mongodb.auth.rootPassword }}',
+      roles: [
+        { role: 'readWrite', db: '{{ $database }}' }
+      ]
+    });
+    {{- end }}
+    {{- end }}
+
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "litlyx.fullname" . }}-mongodb
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "litlyx.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: mongodb
+  template:
+    metadata:
+      labels:
+        {{- include "litlyx.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: mongodb
+        {{- with .Values.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "litlyx.serviceAccountName" . }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+      {{- end }}
+      containers:
+        - name: mongodb
+          image: "{{ .Values.global.imageRegistry | default .Values.mongodb.image.registry }}/{{ .Values.mongodb.image.repository }}:{{ .Values.mongodb.image.tag }}"
+          imagePullPolicy: {{ .Values.mongodb.image.pullPolicy }}
+          ports:
+            - name: mongodb
+              containerPort: {{ .Values.mongodb.service.ports.mongodb }}
+              protocol: TCP
+          env:
+            {{- if .Values.mongodb.auth.enabled }}
+            - name: MONGO_INITDB_ROOT_USERNAME
+              value: {{ .Values.mongodb.auth.rootUser | quote }}
+            - name: MONGO_INITDB_ROOT_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: mongodb-password
+            {{- if .Values.mongodb.auth.databases }}
+            - name: MONGO_INITDB_DATABASE
+              value: {{ index .Values.mongodb.auth.databases 0 | quote }}
+            {{- end }}
+            {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  {{- if .Values.mongodb.auth.enabled }}
+                  mongosh --host 127.0.0.1 --port {{ .Values.mongodb.service.ports.mongodb }} --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('ping')"
+                  {{- else }}
+                  mongosh --host 127.0.0.1 --port {{ .Values.mongodb.service.ports.mongodb }} --eval "db.adminCommand('ping')"
+                  {{- end }}
+            initialDelaySeconds: 30
+            periodSeconds: 10
+            timeoutSeconds: 5
+            successThreshold: 1
+            failureThreshold: 6
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  {{- if .Values.mongodb.auth.enabled }}
+                  mongosh --host 127.0.0.1 --port {{ .Values.mongodb.service.ports.mongodb }} --username $MONGO_INITDB_ROOT_USERNAME --password $MONGO_INITDB_ROOT_PASSWORD --authenticationDatabase admin --eval "db.adminCommand('ping')"
+                  {{- else }}
+                  mongosh --host 127.0.0.1 --port {{ .Values.mongodb.service.ports.mongodb }} --eval "db.adminCommand('ping')"
+                  {{- end }}
+            initialDelaySeconds: 5
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.mongodb.resources | nindent 12 }}
+          volumeMounts:
+            - name: datadir
+              mountPath: /data/db
+            {{- if .Values.mongodb.auth.enabled }}
+            - name: init-scripts
+              mountPath: /docker-entrypoint-initdb.d
+              readOnly: true
+            {{- end }}
+      volumes:
+        - name: datadir
+          {{- if .Values.mongodb.persistence.enabled }}
+          persistentVolumeClaim:
+            claimName: {{ include "litlyx.fullname" . }}-mongodb
+          {{- else }}
+          emptyDir: {}
+          {{- end }}
+        {{- if .Values.mongodb.auth.enabled }}
+        - name: init-scripts
+          configMap:
+            name: {{ include "litlyx.fullname" . }}-mongodb-init
+            defaultMode: 0755
+        {{- end }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "litlyx.fullname" . }}-mongodb
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+spec:
+  type: {{ .Values.mongodb.service.type }}
+  ports:
+    - port: {{ .Values.mongodb.service.ports.mongodb }}
+      targetPort: mongodb
+      protocol: TCP
+      name: mongodb
+  selector:
+    {{- include "litlyx.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: mongodb
+{{- end }}

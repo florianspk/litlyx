@@ -72,7 +72,7 @@ producer:
   env:
     ## @param producer.env.PORT string - Environment variable for the listening port
     PORT: "3099"
-    ## @param producer.env.STREAM_NAME string - Kafka stream name
+    ## @param producer.env.STREAM_NAME string - stream name
     STREAM_NAME: "LITLYX"
   autoscaling:
     ## @param producer.autoscaling.enabled bool - Enable autoscaling for Producer
@@ -139,9 +139,9 @@ consumer:
   env:
     ## @param consumer.env.PORT string - Environment variable for the listening port
     PORT: "3031"
-    ## @param consumer.env.STREAM_NAME string - Kafka stream name
+    ## @param consumer.env.STREAM_NAME string - stream name
     STREAM_NAME: "LITLYX"
-    ## @param consumer.env.GROUP_NAME string - Kafka consumer group name
+    ## @param consumer.env.GROUP_NAME string - consumer group name
     GROUP_NAME: "DATABASE"
   email:
     ## @param consumer.email.enabled bool - Enable email alerts in Consumer
@@ -327,11 +327,20 @@ serviceMonitor:
 
 ## @section MongoDB (internal)
 ## @descriptionStart
-## MongoDB configuration using the Bitnami Helm chart.
+## MongoDB configuration for internal deployment.
 ## @descriptionEnd
 mongodb:
   ## @param mongodb.enabled bool - Enable internal MongoDB
   enabled: true
+  image:
+    ## @param mongodb.image.registry string - Docker registry for MongoDB
+    registry: docker.io
+    ## @param mongodb.image.repository string - MongoDB image repository
+    repository: mongo
+    ## @param mongodb.image.tag string - MongoDB image tag
+    tag: "7.0"
+    ## @param mongodb.image.pullPolicy string - Image pull policy
+    pullPolicy: IfNotPresent
   ## @param mongodb.architecture string - MongoDB architecture (standalone/replicaSet)
   architecture: standalone
   auth:
@@ -376,6 +385,15 @@ mongodb:
 redis:
   ## @param redis.enabled bool - Enable internal Redis
   enabled: true
+  image:
+    ## @param redis.image.registry string - Docker registry for Redis
+    registry: docker.io
+    ## @param redis.image.repository string - Redis image repository
+    repository: redis
+    ## @param redis.image.tag string - Redis image tag
+    tag: "7.2-alpine"
+    ## @param redis.image.pullPolicy string - Image pull policy
+    pullPolicy: IfNotPresent
   ## @param redis.architecture string - Redis architecture (standalone/replica)
   architecture: standalone
   auth:
@@ -420,7 +438,7 @@ externalMongodb:
   ## @param externalMongodb.port int - External MongoDB port
   port: 27017
   ## @param externalMongodb.database string - Database name to use
-  database: "SimpleMetrics"
+  database: "litlyx-metrics"
   ## @param externalMongodb.username string - Username for authentication
   username: ""
   ## @param externalMongodb.password string - Password for authentication

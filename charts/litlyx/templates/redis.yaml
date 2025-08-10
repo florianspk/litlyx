@@ -1,0 +1,182 @@
+{{- if .Values.redis.enabled }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "litlyx.fullname" . }}-redis-config
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+data:
+  redis.conf: |
+    # Redis configuration
+    bind 0.0.0.0
+    port {{ .Values.redis.service.ports.redis }}
+
+    # Persistence
+    save 900 1
+    save 300 10
+    save 60 10000
+
+    # Memory management
+    maxmemory-policy allkeys-lru
+
+    # Security
+    {{- if .Values.redis.auth.enabled }}
+    requirepass {{ .Values.redis.auth.password }}
+    {{- end }}
+
+    # Logging
+    loglevel notice
+
+    # Data directory
+    dir /data
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: {{ include "litlyx.fullname" . }}-redis-master
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+  {{- with .Values.commonAnnotations }}
+  annotations:
+    {{- toYaml . | nindent 4 }}
+  {{- end }}
+spec:
+  serviceName: {{ include "litlyx.fullname" . }}-redis-master
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "litlyx.selectorLabels" . | nindent 6 }}
+      app.kubernetes.io/component: redis
+  template:
+    metadata:
+      labels:
+        {{- include "litlyx.selectorLabels" . | nindent 8 }}
+        app.kubernetes.io/component: redis
+        {{- with .Values.commonLabels }}
+        {{- toYaml . | nindent 8 }}
+        {{- end }}
+    spec:
+      {{- with .Values.global.imagePullSecrets }}
+      imagePullSecrets:
+        {{- toYaml . | nindent 8 }}
+      {{- end }}
+      serviceAccountName: {{ include "litlyx.serviceAccountName" . }}
+      {{- if .Values.securityContext.enabled }}
+      securityContext:
+        fsGroup: {{ .Values.securityContext.fsGroup }}
+        runAsUser: {{ .Values.securityContext.runAsUser }}
+        runAsGroup: {{ .Values.securityContext.runAsGroup }}
+        runAsNonRoot: {{ .Values.securityContext.runAsNonRoot }}
+      {{- end }}
+      containers:
+        - name: redis
+          image: "{{ .Values.global.imageRegistry | default .Values.redis.image.registry }}/{{ .Values.redis.image.repository }}:{{ .Values.redis.image.tag }}"
+          imagePullPolicy: {{ .Values.redis.image.pullPolicy }}
+          ports:
+            - name: redis
+              containerPort: {{ .Values.redis.service.ports.redis }}
+              protocol: TCP
+          command:
+            - redis-server
+            - /usr/local/etc/redis/redis.conf
+          env:
+            {{- if .Values.redis.auth.enabled }}
+            - name: REDIS_PASSWORD
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "litlyx.secretName" . }}
+                  key: redis-password
+            {{- end }}
+          livenessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  {{- if .Values.redis.auth.enabled }}
+                  redis-cli -h 127.0.0.1 -p {{ .Values.redis.service.ports.redis }} -a $REDIS_PASSWORD ping
+                  {{- else }}
+                  redis-cli -h 127.0.0.1 -p {{ .Values.redis.service.ports.redis }} ping
+                  {{- end }}
+            initialDelaySeconds: 20
+            periodSeconds: 5
+            timeoutSeconds: 3
+            successThreshold: 1
+            failureThreshold: 3
+          readinessProbe:
+            exec:
+              command:
+                - sh
+                - -c
+                - |
+                  {{- if .Values.redis.auth.enabled }}
+                  redis-cli -h 127.0.0.1 -p {{ .Values.redis.service.ports.redis }} -a $REDIS_PASSWORD ping
+                  {{- else }}
+                  redis-cli -h 127.0.0.1 -p {{ .Values.redis.service.ports.redis }} ping
+                  {{- end }}
+            initialDelaySeconds: 5
+            periodSeconds: 3
+            timeoutSeconds: 1
+            successThreshold: 1
+            failureThreshold: 3
+          resources:
+            {{- toYaml .Values.redis.master.resources | nindent 12 }}
+          volumeMounts:
+            - name: redis-data
+              mountPath: /data
+            - name: redis-config
+              mountPath: /usr/local/etc/redis/redis.conf
+              subPath: redis.conf
+      volumes:
+        - name: redis-config
+          configMap:
+            name: {{ include "litlyx.fullname" . }}-redis-config
+  {{- if .Values.redis.master.persistence.enabled }}
+  volumeClaimTemplates:
+    - apiVersion: v1
+      kind: PersistentVolumeClaim
+      metadata:
+        name: redis-data
+        labels:
+          {{- include "litlyx.selectorLabels" . | nindent 10 }}
+          app.kubernetes.io/component: redis
+      spec:
+        accessModes:
+          - ReadWriteOnce
+        {{- if .Values.redis.master.persistence.storageClass }}
+        {{- if (eq "-" .Values.redis.master.persistence.storageClass) }}
+        storageClassName: ""
+        {{- else }}
+        storageClassName: {{ .Values.redis.master.persistence.storageClass | quote }}
+        {{- end }}
+        {{- else if .Values.global.storageClass }}
+        storageClassName: {{ .Values.global.storageClass | quote }}
+        {{- end }}
+        resources:
+          requests:
+            storage: {{ .Values.redis.master.persistence.size | quote }}
+  {{- end }}
+
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: {{ include "litlyx.fullname" . }}-redis-master
+  labels:
+    {{- include "litlyx.labels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+spec:
+  type: {{ .Values.redis.service.type }}
+  ports:
+    - port: {{ .Values.redis.service.ports.redis }}
+      targetPort: redis
+      protocol: TCP
+      name: redis
+  selector:
+    {{- include "litlyx.selectorLabels" . | nindent 4 }}
+    app.kubernetes.io/component: redis
+{{- end }}

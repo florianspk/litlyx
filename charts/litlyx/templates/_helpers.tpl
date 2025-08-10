@@ -84,7 +84,7 @@ Create MongoDB connection string
 {{- $port := .Values.mongodb.service.ports.mongodb }}
 {{- $username := .Values.mongodb.auth.rootUser }}
 {{- $password := .Values.mongodb.auth.rootPassword }}
-{{- $database := .Values.mongodb.auth.database }}
+{{- $database := index .Values.mongodb.auth.databases 0 }}
 {{- printf "mongodb://%s:%s@%s:%d/%s?readPreference=primaryPreferred&authSource=admin" $username $password $host (int $port) $database }}
 {{- else if .Values.externalMongodb.enabled }}
 {{- if .Values.externalMongodb.connectionString }}

@@ -77,7 +77,7 @@ Configuration for the Producer service, responsible for sending data to the stre
 | `producer.podSecurityContext`                            | object - Security context at pod level               | `{}`                     |
 | `producer.securityContext`                               | object - Security context at container level         | `{}`                     |
 | `producer.env.PORT`                                      | string - Environment variable for the listening port | `3099`                   |
-| `producer.env.STREAM_NAME`                               | string - Kafka stream name                           | `LITLYX`                 |
+| `producer.env.STREAM_NAME`                               | string - stream name                                 | `LITLYX`                 |
 | `producer.autoscaling.enabled`                           | bool - Enable autoscaling for Producer               | `false`                  |
 | `producer.autoscaling.minReplicas`                       | int - Minimum number of replicas                     | `1`                      |
 | `producer.autoscaling.maxReplicas`                       | int - Maximum number of replicas                     | `10`                     |
@@ -111,8 +111,8 @@ Configuration for the Consumer service, which reads and processes data from the 
 | `consumer.podSecurityContext`                            | object - Security context at pod level               | `{}`                     |
 | `consumer.securityContext`                               | object - Security context at container level         | `{}`                     |
 | `consumer.env.PORT`                                      | string - Environment variable for the listening port | `3031`                   |
-| `consumer.env.STREAM_NAME`                               | string - Kafka stream name                           | `LITLYX`                 |
-| `consumer.env.GROUP_NAME`                                | string - Kafka consumer group name                   | `DATABASE`               |
+| `consumer.env.STREAM_NAME`                               | string - stream name                                 | `LITLYX`                 |
+| `consumer.env.GROUP_NAME`                                | string - consumer group name                         | `DATABASE`               |
 | `consumer.email.enabled`                                 | bool - Enable email alerts in Consumer               | `false`                  |
 | `consumer.email.service`                                 | string - Email provider service name                 | `Brevo`                  |
 | `consumer.email.brevoApiKey`                             | string - API key for Brevo email service             | `""`                     |
@@ -200,11 +200,15 @@ ServiceMonitor configuration for Prometheus integration.
 
 ### MongoDB (internal)
 
-MongoDB configuration using the Bitnami Helm chart.
+MongoDB configuration for internal deployment.
 
 | Name                                | Description                                           | Value                |
 | ----------------------------------- | ----------------------------------------------------- | -------------------- |
 | `mongodb.enabled`                   | bool - Enable internal MongoDB                        | `true`               |
+| `mongodb.image.registry`            | string - Docker registry for MongoDB                  | `docker.io`          |
+| `mongodb.image.repository`          | string - MongoDB image repository                     | `mongo`              |
+| `mongodb.image.tag`                 | string - MongoDB image tag                            | `7.0`                |
+| `mongodb.image.pullPolicy`          | string - Image pull policy                            | `IfNotPresent`       |
 | `mongodb.architecture`              | string - MongoDB architecture (standalone/replicaSet) | `standalone`         |
 | `mongodb.auth.enabled`              | bool - Enable MongoDB authentication                  | `true`               |
 | `mongodb.auth.rootUser`             | string - Root username                                | `root`               |
@@ -223,34 +227,38 @@ MongoDB configuration using the Bitnami Helm chart.
 
 ### Redis (internal)
 
-| Name                                     | Description                                      | Value        |
-| ---------------------------------------- | ------------------------------------------------ | ------------ |
-| `redis.enabled`                          | bool - Enable internal Redis                     | `true`       |
-| `redis.architecture`                     | string - Redis architecture (standalone/replica) | `standalone` |
-| `redis.auth.enabled`                     | bool - Enable Redis authentication               | `true`       |
-| `redis.auth.password`                    | string - Redis password                          | `litlyx`     |
-| `redis.master.persistence.enabled`       | bool - Enable Redis persistence                  | `true`       |
-| `redis.master.persistence.size`          | string - Size of the Redis volume                | `8Gi`        |
-| `redis.master.persistence.storageClass`  | string - StorageClass for Redis PVC              | `""`         |
-| `redis.master.resources.limits.cpu`      | string - CPU limit for Redis master              | `500m`       |
-| `redis.master.resources.limits.memory`   | string - Memory limit for Redis master           | `512Mi`      |
-| `redis.master.resources.requests.cpu`    | string - CPU request for Redis master            | `250m`       |
-| `redis.master.resources.requests.memory` | string - Memory request for Redis master         | `256Mi`      |
-| `redis.service.type`                     | string - Redis service type                      | `ClusterIP`  |
-| `redis.service.ports.redis`              | int - Redis port                                 | `6379`       |
+| Name                                     | Description                                      | Value          |
+| ---------------------------------------- | ------------------------------------------------ | -------------- |
+| `redis.enabled`                          | bool - Enable internal Redis                     | `true`         |
+| `redis.image.registry`                   | string - Docker registry for Redis               | `docker.io`    |
+| `redis.image.repository`                 | string - Redis image repository                  | `redis`        |
+| `redis.image.tag`                        | string - Redis image tag                         | `7.2-alpine`   |
+| `redis.image.pullPolicy`                 | string - Image pull policy                       | `IfNotPresent` |
+| `redis.architecture`                     | string - Redis architecture (standalone/replica) | `standalone`   |
+| `redis.auth.enabled`                     | bool - Enable Redis authentication               | `true`         |
+| `redis.auth.password`                    | string - Redis password                          | `litlyx`       |
+| `redis.master.persistence.enabled`       | bool - Enable Redis persistence                  | `true`         |
+| `redis.master.persistence.size`          | string - Size of the Redis volume                | `8Gi`          |
+| `redis.master.persistence.storageClass`  | string - StorageClass for Redis PVC              | `""`           |
+| `redis.master.resources.limits.cpu`      | string - CPU limit for Redis master              | `500m`         |
+| `redis.master.resources.limits.memory`   | string - Memory limit for Redis master           | `512Mi`        |
+| `redis.master.resources.requests.cpu`    | string - CPU request for Redis master            | `250m`         |
+| `redis.master.resources.requests.memory` | string - Memory request for Redis master         | `256Mi`        |
+| `redis.service.type`                     | string - Redis service type                      | `ClusterIP`    |
+| `redis.service.ports.redis`              | int - Redis port                                 | `6379`         |
 
 ### External MongoDB
 
-| Name                               | Description                                     | Value           |
-| ---------------------------------- | ----------------------------------------------- | --------------- |
-| `externalMongodb.enabled`          | bool - Use external MongoDB instead of internal | `false`         |
-| `externalMongodb.connectionString` | string - Full MongoDB URI (overrides host/port) | `""`            |
-| `externalMongodb.host`             | string - External MongoDB host                  | `""`            |
-| `externalMongodb.port`             | int - External MongoDB port                     | `27017`         |
-| `externalMongodb.database`         | string - Database name to use                   | `SimpleMetrics` |
-| `externalMongodb.username`         | string - Username for authentication            | `""`            |
-| `externalMongodb.password`         | string - Password for authentication            | `""`            |
-| `externalMongodb.authSource`       | string - Authentication source (e.g., admin)    | `admin`         |
+| Name                               | Description                                     | Value            |
+| ---------------------------------- | ----------------------------------------------- | ---------------- |
+| `externalMongodb.enabled`          | bool - Use external MongoDB instead of internal | `false`          |
+| `externalMongodb.connectionString` | string - Full MongoDB URI (overrides host/port) | `""`             |
+| `externalMongodb.host`             | string - External MongoDB host                  | `""`             |
+| `externalMongodb.port`             | int - External MongoDB port                     | `27017`          |
+| `externalMongodb.database`         | string - Database name to use                   | `litlyx-metrics` |
+| `externalMongodb.username`         | string - Username for authentication            | `""`             |
+| `externalMongodb.password`         | string - Password for authentication            | `""`             |
+| `externalMongodb.authSource`       | string - Authentication source (e.g., admin)    | `admin`          |
 
 ### External Redis
 
