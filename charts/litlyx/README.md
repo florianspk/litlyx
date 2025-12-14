@@ -207,7 +207,7 @@ MongoDB configuration for internal deployment.
 | `mongodb.enabled`                   | bool - Enable internal MongoDB                        | `true`               |
 | `mongodb.image.registry`            | string - Docker registry for MongoDB                  | `docker.io`          |
 | `mongodb.image.repository`          | string - MongoDB image repository                     | `mongo`              |
-| `mongodb.image.tag`                 | string - MongoDB image tag                            | `7.0`                |
+| `mongodb.image.tag`                 | string - MongoDB image tag                            | `8.0.11`             |
 | `mongodb.image.pullPolicy`          | string - Image pull policy                            | `IfNotPresent`       |
 | `mongodb.architecture`              | string - MongoDB architecture (standalone/replicaSet) | `standalone`         |
 | `mongodb.auth.enabled`              | bool - Enable MongoDB authentication                  | `true`               |
